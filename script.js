@@ -262,19 +262,38 @@ function findRoadPath(startRoadName, endRoadName) {
   return [startIndex, endIndex];
 }
 
-// Interpolate intermediate points between two coordinates
-function interpolatePoints(start, end, steps = 3) {
-  const points = [start];
-  for (let i = 1; i < steps; i++) {
-    const t = i / steps;
-    const interpolated = [
-      start[0] + (end[0] - start[0]) * t,
-      start[1] + (end[1] - start[1]) * t
-    ];
-    points.push(interpolated);
+// Catmull-Rom spline curve interpolation for smooth paths
+function catmullRom(p0, p1, p2, p3, t) {
+  const v0 = (p2 - p0) * 0.5;
+  const v1 = (p3 - p1) * 0.5;
+  const t2 = t * t;
+  const t3 = t * t2;
+  return (2 * p1 - 2 * p2 + v0 + v1) * t3 + (-3 * p1 + 3 * p2 - 2 * v0 - v1) * t2 + v0 * t + p1;
+}
+
+// Generate smooth curve through multiple points using Catmull-Rom spline
+function generateSmoothCurve(points, resolution = 10) {
+  if (points.length < 2) return points;
+  if (points.length === 2) return points;
+
+  const smoothedPoints = [];
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[Math.max(i - 1, 0)];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[Math.min(i + 2, points.length - 1)];
+
+    for (let t = 0; t < 1; t += 1 / resolution) {
+      const lat = catmullRom(p0[0], p1[0], p2[0], p3[0], t);
+      const lng = catmullRom(p0[1], p1[1], p2[1], p3[1], t);
+      smoothedPoints.push([lat, lng]);
+    }
   }
-  points.push(end);
-  return points;
+
+  // Add the final point
+  smoothedPoints.push(points[points.length - 1]);
+  return smoothedPoints;
 }
 
 function generateDirections(roadIndices, origin, destination) {
@@ -391,32 +410,13 @@ function buildRoadRoute(origin, destination) {
 
   currentRoute = roadIndices;
 
-  // Build route with interpolated points for smoother lines
-  let allPoints = [origin];
-  for (let i = 0; i < roadPath.length; i++) {
-    if (i === 0) {
-      // Interpolate between origin and first road
-      const interpolated = interpolatePoints(origin, roadPath[i], 2);
-      allPoints.push(...interpolated.slice(1));
-    } else {
-      // Interpolate between road points
-      const interpolated = interpolatePoints(roadPath[i - 1], roadPath[i], 2);
-      allPoints.push(...interpolated.slice(1));
-    }
-  }
-  
-  // Interpolate to destination
-  if (roadPath.length > 0) {
-    const interpolated = interpolatePoints(roadPath[roadPath.length - 1], destination, 2);
-    allPoints.push(...interpolated.slice(1));
-  } else {
-    allPoints.push(destination);
-  }
+  // Build waypoints: origin -> road nodes -> destination
+  const waypoints = [origin, ...roadPath, destination];
 
-  // Remove duplicates
-  return allPoints.filter((point, index, arr) => {
-    return !arr.slice(0, index).some((prev) => prev[0] === point[0] && prev[1] === point[1]);
-  });
+  // Generate smooth curve through waypoints using Catmull-Rom spline
+  const smoothCurve = generateSmoothCurve(waypoints, 15);
+
+  return smoothCurve;
 }
 
 function clearRouteMarkers() {
@@ -435,10 +435,10 @@ function createDirectionArrows(points) {
     return;
   }
 
-  // Add arrows every 3rd segment to avoid clutter
-  for (let i = 0; i < points.length - 1; i += 3) {
+  // Add arrows every 10th segment for better spacing on curved route
+  for (let i = 0; i < points.length - 1; i += Math.max(10, Math.floor(points.length / 5))) {
     const start = points[i];
-    const end = points[i + 1];
+    const end = points[Math.min(i + 1, points.length - 1)];
     const mid = [
       (start[0] + end[0]) / 2,
       (start[1] + end[1]) / 2
@@ -515,8 +515,8 @@ $('directionsBtn').addEventListener('click', () => {
   activeRoute = L.polyline(routePoints, {
     color: directionColor,
     weight: 4,
-    opacity: 0.9,
-    smoothFactor: 0.5,
+    opacity: 0.85,
+    smoothFactor: 2.0,
     lineCap: 'round',
     lineJoin: 'round'
   }).addTo(trafficMap);
