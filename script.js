@@ -164,6 +164,7 @@ renderTrafficList();
 const routeSummary = $('routeSummary');
 let activeRoute = null;
 let routeMarkers = [];
+let currentRoute = [];
 
 function parseCoords(value) {
   const [lat, lng] = value.split(',').map(Number);
@@ -261,6 +262,103 @@ function findRoadPath(startRoadName, endRoadName) {
   return [startIndex, endIndex];
 }
 
+function generateDirections(roadIndices, origin, destination) {
+  const directions = [];
+
+  if (roadIndices.length === 0) {
+    return directions;
+  }
+
+  // Start direction
+  const firstRoad = roads[roadIndices[0]];
+  const bearing = Math.atan2(
+    firstRoad.point[1] - origin[1],
+    firstRoad.point[0] - origin[0]
+  ) * (180 / Math.PI);
+
+  const compassDir = (bearing + 360) % 360;
+  let direction = 'Head';
+  if (compassDir < 45 || compassDir >= 315) direction += ' North';
+  else if (compassDir < 135) direction += ' East';
+  else if (compassDir < 225) direction += ' South';
+  else direction += ' West';
+
+  directions.push({
+    instruction: `${direction} on ${firstRoad.name}`,
+    distance: Math.round(haversine(origin, firstRoad.point) * 1000),
+    road: firstRoad,
+    type: 'start'
+  });
+
+  // Turn-by-turn for each road segment
+  for (let i = 1; i < roadIndices.length; i++) {
+    const prevRoad = roads[roadIndices[i - 1]];
+    const currentRoad = roads[roadIndices[i]];
+
+    const prevBearing = Math.atan2(
+      prevRoad.point[1] - (i > 1 ? roads[roadIndices[i - 2]].point[1] : origin[1]),
+      prevRoad.point[0] - (i > 1 ? roads[roadIndices[i - 2]].point[0] : origin[0])
+    ) * (180 / Math.PI);
+
+    const currentBearing = Math.atan2(
+      currentRoad.point[1] - prevRoad.point[1],
+      currentRoad.point[0] - prevRoad.point[0]
+    ) * (180 / Math.PI);
+
+    let turn = 'Continue';
+    const angleDiff = ((currentBearing - prevBearing + 360) % 360);
+
+    if (angleDiff > 30 && angleDiff < 150) {
+      turn = 'Turn left onto';
+    } else if (angleDiff > 210 && angleDiff < 330) {
+      turn = 'Turn right onto';
+    } else if (angleDiff > 150 && angleDiff < 210) {
+      turn = 'Make a U-turn on';
+    } else {
+      turn = 'Continue on';
+    }
+
+    const distance = Math.round(haversine(prevRoad.point, currentRoad.point) * 1000);
+
+    directions.push({
+      instruction: `${turn} ${currentRoad.name}`,
+      distance: distance,
+      road: currentRoad,
+      type: 'turn'
+    });
+  }
+
+  // Arrive direction
+  const lastRoad = roads[roadIndices[roadIndices.length - 1]];
+  const finalDistance = Math.round(haversine(lastRoad.point, destination) * 1000);
+  directions.push({
+    instruction: 'Arrive at destination',
+    distance: finalDistance,
+    road: null,
+    type: 'end'
+  });
+
+  return directions;
+}
+
+function renderDirections(directions) {
+  const directionsList = $('directions-list');
+  directionsList.innerHTML = '';
+
+  directions.forEach((dir, index) => {
+    const step = document.createElement('div');
+    step.className = `direction-step ${dir.type}`;
+    step.innerHTML = `
+      <div class="step-number">${index + 1}</div>
+      <div class="step-content">
+        <div class="step-instruction">${dir.instruction}</div>
+        <div class="step-distance">${dir.distance}m</div>
+      </div>
+    `;
+    directionsList.appendChild(step);
+  });
+}
+
 function buildRoadRoute(origin, destination) {
   const startRoad = nearestRoad(origin);
   const endRoad = nearestRoad(destination);
@@ -269,11 +367,14 @@ function buildRoadRoute(origin, destination) {
   const endIndex = roads.findIndex((road) => road.name === endRoad.road.name);
 
   let roadPath = [];
+  let roadIndices = [];
 
   if (startIndex !== -1 && endIndex !== -1) {
-    roadPath = findRoadPath(startRoad.road.name, endRoad.road.name)
-      .map((index) => roads[index].point);
+    roadIndices = findRoadPath(startRoad.road.name, endRoad.road.name);
+    roadPath = roadIndices.map((index) => roads[index].point);
   }
+
+  currentRoute = roadIndices;
 
   const routePoints = [origin, ...roadPath, destination];
 
@@ -321,7 +422,7 @@ function createDirectionArrows(points) {
   }
 }
 
-function updateRouteSummary(origin, destination) {
+function updateRouteSummary(origin, destination, directions) {
   const originName = $('origin').selectedOptions[0].textContent;
   const destinationName = $('destination').selectedOptions[0].textContent;
 
@@ -332,10 +433,29 @@ function updateRouteSummary(origin, destination) {
     ) * 111.2 * 10
   ) / 10;
 
+  let totalDistance = 0;
+  directions.forEach((dir) => {
+    totalDistance += dir.distance;
+  });
+
+  const estimatedTime = Math.ceil(totalDistance / 1000 / 30); // assume 30 km/h average
+
   routeSummary.innerHTML = `
-    From <strong>${originName}</strong> to <strong>${destinationName}</strong><br>
-    Estimated distance: <strong>${distanceKm} km</strong><br>
-    Route follows the major road network around District 2 with turn-by-turn road guidance.
+    <strong>${originName}</strong> → <strong>${destinationName}</strong><br>
+    <div class="route-stats">
+      <div class="stat">
+        <span class="label">Distance:</span>
+        <span class="value">${(totalDistance / 1000).toFixed(1)} km</span>
+      </div>
+      <div class="stat">
+        <span class="label">Est. Time:</span>
+        <span class="value">${estimatedTime} min</span>
+      </div>
+      <div class="stat">
+        <span class="label">Steps:</span>
+        <span class="value">${directions.length}</span>
+      </div>
+    </div>
   `;
 }
 
@@ -386,7 +506,10 @@ $('directionsBtn').addEventListener('click', () => {
     padding: [30, 30]
   });
 
-  updateRouteSummary(origin, destination);
+  // Generate turn-by-turn directions
+  const directions = generateDirections(currentRoute, origin, destination);
+  renderDirections(directions);
+  updateRouteSummary(origin, destination, directions);
 });
 
 $('clearBtn').addEventListener('click', () => {
@@ -398,6 +521,8 @@ $('clearBtn').addEventListener('click', () => {
   clearRouteMarkers();
 
   routeSummary.textContent = 'Choose two Quezon City locations, then select Directions.';
+  $('directions-list').innerHTML = '';
+  currentRoute = [];
 });
 
 $('refreshBtn').addEventListener('click', () => {
