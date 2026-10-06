@@ -262,6 +262,21 @@ function findRoadPath(startRoadName, endRoadName) {
   return [startIndex, endIndex];
 }
 
+// Interpolate intermediate points between two coordinates
+function interpolatePoints(start, end, steps = 3) {
+  const points = [start];
+  for (let i = 1; i < steps; i++) {
+    const t = i / steps;
+    const interpolated = [
+      start[0] + (end[0] - start[0]) * t,
+      start[1] + (end[1] - start[1]) * t
+    ];
+    points.push(interpolated);
+  }
+  points.push(end);
+  return points;
+}
+
 function generateDirections(roadIndices, origin, destination) {
   const directions = [];
 
@@ -376,9 +391,30 @@ function buildRoadRoute(origin, destination) {
 
   currentRoute = roadIndices;
 
-  const routePoints = [origin, ...roadPath, destination];
+  // Build route with interpolated points for smoother lines
+  let allPoints = [origin];
+  for (let i = 0; i < roadPath.length; i++) {
+    if (i === 0) {
+      // Interpolate between origin and first road
+      const interpolated = interpolatePoints(origin, roadPath[i], 2);
+      allPoints.push(...interpolated.slice(1));
+    } else {
+      // Interpolate between road points
+      const interpolated = interpolatePoints(roadPath[i - 1], roadPath[i], 2);
+      allPoints.push(...interpolated.slice(1));
+    }
+  }
+  
+  // Interpolate to destination
+  if (roadPath.length > 0) {
+    const interpolated = interpolatePoints(roadPath[roadPath.length - 1], destination, 2);
+    allPoints.push(...interpolated.slice(1));
+  } else {
+    allPoints.push(destination);
+  }
 
-  return routePoints.filter((point, index, arr) => {
+  // Remove duplicates
+  return allPoints.filter((point, index, arr) => {
     return !arr.slice(0, index).some((prev) => prev[0] === point[0] && prev[1] === point[1]);
   });
 }
@@ -399,7 +435,8 @@ function createDirectionArrows(points) {
     return;
   }
 
-  for (let i = 0; i < points.length - 1; i += 1) {
+  // Add arrows every 3rd segment to avoid clutter
+  for (let i = 0; i < points.length - 1; i += 3) {
     const start = points[i];
     const end = points[i + 1];
     const mid = [
@@ -479,7 +516,9 @@ $('directionsBtn').addEventListener('click', () => {
     color: directionColor,
     weight: 4,
     opacity: 0.9,
-    smoothFactor: 1.5
+    smoothFactor: 0.5,
+    lineCap: 'round',
+    lineJoin: 'round'
   }).addTo(trafficMap);
 
   createDirectionArrows(routePoints);
