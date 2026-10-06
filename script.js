@@ -202,24 +202,36 @@ function buildRoadRoute(origin, destination) {
   const startRoad = nearestRoad(origin);
   const endRoad = nearestRoad(destination);
 
-  const roadCandidates = roads
+  const deltaLat = destination[0] - origin[0];
+  const deltaLng = destination[1] - origin[1];
+  const travelLength = Math.hypot(deltaLat, deltaLng) || 1;
+
+  const candidateRoads = roads
     .filter((road) => road.name !== startRoad.road.name && road.name !== endRoad.road.name)
-    .map((road) => ({
-      road,
-      score:
-        haversine(origin, road.point) +
-        haversine(destination, road.point) +
-        haversine(startRoad.road.point, road.point) +
-        haversine(endRoad.road.point, road.point)
-    }))
-    .sort((a, b) => a.score - b.score)
+    .map((road) => {
+      const dx = road.point[0] - origin[0];
+      const dy = road.point[1] - origin[1];
+      const progression = (dx * deltaLat + dy * deltaLng) / travelLength;
+      const lateralOffset = Math.abs(dx * deltaLng - dy * deltaLat) / travelLength;
+      const roadDistance = haversine(origin, road.point) + haversine(destination, road.point);
+      const endBias = haversine(road.point, endRoad.road.point);
+
+      return {
+        road,
+        progression,
+        lateralOffset,
+        score: lateralOffset * 6 + endBias * 0.8 + roadDistance * 0.35
+      };
+    })
+    .filter((entry) => entry.progression > 0)
+    .sort((a, b) => a.progression - b.progression || a.score - b.score)
     .slice(0, 3)
-    .map((item) => item.road.point);
+    .map((entry) => entry.road.point);
 
   const routePoints = [
     origin,
     startRoad.road.point,
-    ...roadCandidates,
+    ...candidateRoads,
     endRoad.road.point,
     destination
   ];
