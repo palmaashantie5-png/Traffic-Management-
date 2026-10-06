@@ -198,43 +198,84 @@ function nearestRoad(coord) {
   return best;
 }
 
+function buildRoadGraph() {
+  return roads.map((road, roadIndex) => {
+    return roads
+      .map((otherRoad, otherIndex) => {
+        if (roadIndex === otherIndex) {
+          return null;
+        }
+
+        return {
+          index: otherIndex,
+          distance: haversine(road.point, otherRoad.point)
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 3);
+  });
+}
+
+const roadGraph = buildRoadGraph();
+
+function findRoadPath(startRoadName, endRoadName) {
+  const startIndex = roads.findIndex((road) => road.name === startRoadName);
+  const endIndex = roads.findIndex((road) => road.name === endRoadName);
+
+  if (startIndex === -1 || endIndex === -1) {
+    return [];
+  }
+
+  if (startIndex === endIndex) {
+    return [startIndex];
+  }
+
+  const queue = [{ index: startIndex, cost: 0, path: [startIndex] }];
+  const best = new Map([[startIndex, { cost: 0, path: [startIndex] }]]);
+
+  while (queue.length) {
+    queue.sort((a, b) => a.cost - b.cost);
+    const current = queue.shift();
+
+    if (current.index === endIndex) {
+      return current.path;
+    }
+
+    if (current.path.length > roads.length) {
+      continue;
+    }
+
+    for (const neighbor of roadGraph[current.index] || []) {
+      const nextCost = current.cost + neighbor.distance;
+      const nextPath = [...current.path, neighbor.index];
+      const existingBest = best.get(neighbor.index);
+
+      if (!existingBest || nextCost < existingBest.cost) {
+        best.set(neighbor.index, { cost: nextCost, path: nextPath });
+        queue.push({ index: neighbor.index, cost: nextCost, path: nextPath });
+      }
+    }
+  }
+
+  return [startIndex, endIndex];
+}
+
 function buildRoadRoute(origin, destination) {
   const startRoad = nearestRoad(origin);
   const endRoad = nearestRoad(destination);
 
-  const deltaLat = destination[0] - origin[0];
-  const deltaLng = destination[1] - origin[1];
-  const travelLength = Math.hypot(deltaLat, deltaLng) || 1;
+  const startIndex = roads.findIndex((road) => road.name === startRoad.road.name);
+  const endIndex = roads.findIndex((road) => road.name === endRoad.road.name);
 
-  const candidateRoads = roads
-    .filter((road) => road.name !== startRoad.road.name && road.name !== endRoad.road.name)
-    .map((road) => {
-      const dx = road.point[0] - origin[0];
-      const dy = road.point[1] - origin[1];
-      const progression = (dx * deltaLat + dy * deltaLng) / travelLength;
-      const lateralOffset = Math.abs(dx * deltaLng - dy * deltaLat) / travelLength;
-      const roadDistance = haversine(origin, road.point) + haversine(destination, road.point);
-      const endBias = haversine(road.point, endRoad.road.point);
+  let roadPath = [];
 
-      return {
-        road,
-        progression,
-        lateralOffset,
-        score: lateralOffset * 6 + endBias * 0.8 + roadDistance * 0.35
-      };
-    })
-    .filter((entry) => entry.progression > 0)
-    .sort((a, b) => a.progression - b.progression || a.score - b.score)
-    .slice(0, 3)
-    .map((entry) => entry.road.point);
+  if (startIndex !== -1 && endIndex !== -1) {
+    roadPath = findRoadPath(startRoad.road.name, endRoad.road.name)
+      .map((index) => roads[index].point);
+  }
 
-  const routePoints = [
-    origin,
-    startRoad.road.point,
-    ...candidateRoads,
-    endRoad.road.point,
-    destination
-  ];
+  const routePoints = [origin, ...roadPath, destination];
 
   return routePoints.filter((point, index, arr) => {
     return !arr.slice(0, index).some((prev) => prev[0] === point[0] && prev[1] === point[1]);
@@ -294,7 +335,7 @@ function updateRouteSummary(origin, destination) {
   routeSummary.innerHTML = `
     From <strong>${originName}</strong> to <strong>${destinationName}</strong><br>
     Estimated distance: <strong>${distanceKm} km</strong><br>
-    Route follows the major road network around District 2.
+    Route follows the major road network around District 2 with turn-by-turn road guidance.
   `;
 }
 
@@ -317,7 +358,8 @@ $('directionsBtn').addEventListener('click', () => {
   activeRoute = L.polyline(routePoints, {
     color: directionColor,
     weight: 4,
-    opacity: 0.9
+    opacity: 0.9,
+    smoothFactor: 1.5
   }).addTo(trafficMap);
 
   createDirectionArrows(routePoints);
