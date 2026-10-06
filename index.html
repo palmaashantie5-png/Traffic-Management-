@@ -14,7 +14,271 @@
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
       crossorigin=""
     />
-    <link rel="stylesheet" href="styles.css" />
+    <style>
+      :root {
+        --navy: #1f2a37;
+        --blue: #2364d8;
+        --blue-dark: #1d4ed8;
+        --bg: #eef1f5;
+        --line: #e5e7eb;
+        --muted: #6b7280;
+        --green: #10b981;
+        --amber: #f59e0b;
+        --red: #ef4444;
+        --white: #fff;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        background: var(--bg);
+        color: var(--navy);
+      }
+      button, input, select { font: inherit; }
+      button { cursor: pointer; }
+      .hidden { display: none !important; }
+
+      .login-screen {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: linear-gradient(135deg, #0f172a, #2563eb);
+      }
+
+      .login-card {
+        width: min(100%, 420px);
+        background: var(--white);
+        border-radius: 20px;
+        padding: 32px 28px;
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+      }
+
+      .logo { text-align: center; font-size: 52px; margin-bottom: 8px; }
+      .login-card h1 { margin: 0 0 8px; text-align: center; font-size: 28px; }
+      .muted { text-align: center; margin: 0 0 24px; color: var(--muted); }
+      .field { margin-bottom: 18px; }
+      label { display: block; font-weight: 700; font-size: 14px; margin-bottom: 8px; color: var(--navy); }
+      input, select {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 12px 14px;
+        background: var(--white);
+        color: var(--navy);
+        font-size: 15px;
+      }
+      input:focus, select:focus {
+        outline: 0;
+        border-color: var(--blue);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.18);
+      }
+
+      .primary-btn {
+        width: 100%;
+        padding: 12px 16px;
+        background: var(--blue);
+        color: var(--white);
+        border: 0;
+        border-radius: 10px;
+        font-weight: 700;
+      }
+      .primary-btn:hover { background: var(--blue-dark); }
+      .primary-btn.compact { width: auto; padding: 10px 18px; min-width: 120px; }
+      .demo-note { margin: 16px 0 0; font-size: 12px; text-align: center; color: var(--muted); line-height: 1.6; }
+
+      .app {
+        display: grid;
+        grid-template-columns: 236px 1fr;
+        grid-template-rows: 68px 1fr;
+        min-height: 100vh;
+      }
+
+      .topbar {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #1d272f;
+        color: #f2f5f8;
+        padding: 0 22px;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+      }
+
+      .brand-wrap { display: flex; align-items: center; gap: 12px; }
+      .brand-mark { font-size: 1.7rem; opacity: 0.9; }
+      .brand-title { font-size: 1.08rem; font-weight: 800; line-height: 1.1; }
+      .brand-wrap small {
+        display: block;
+        color: rgba(255,255,255,0.72);
+        font-size: 12px;
+        margin-top: 2px;
+      }
+
+      .user-panel { display: flex; align-items: center; gap: 14px; color: #f1f5f9; }
+      .user-name { font-weight: 700; }
+      .user-role { font-size: 12px; color: rgba(255,255,255,0.7); }
+      .logout-btn {
+        background: rgba(255,255,255,0.12);
+        color: var(--white);
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.08);
+        font-weight: 600;
+      }
+      .logout-btn:hover { background: rgba(255,255,255,0.18); }
+
+      .sidebar { background: #f7f8fa; border-right: 1px solid var(--line); padding: 18px 0; }
+      .nav { display: flex; flex-direction: column; gap: 8px; padding: 0 14px; list-style: none; margin: 0; }
+      .nav-btn {
+        width: 100%;
+        background: 0;
+        border: 0;
+        color: var(--navy);
+        border-radius: 10px;
+        padding: 12px 14px;
+        font-weight: 600;
+        text-align: left;
+        font-size: 1.05rem;
+      }
+      .nav-btn:hover, .nav-btn.active { background: rgba(37,99,235,0.1); color: var(--blue); }
+
+      .main-content { padding: 22px 28px; overflow-y: auto; }
+      .page { display: none; }
+      .page.active { display: block; }
+      .page-header { margin-bottom: 18px; }
+      .page-header h2 { margin: 0; font-size: 2.2rem; }
+
+      .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 24px; }
+      .stat-card {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+      }
+      .stat-card h3 { margin: 0 0 12px; font-size: 16px; }
+      .stat-card p { margin: 0; font-size: 14px; color: var(--muted); }
+      .stat-value { margin: 12px 0; font-size: 2rem; font-weight: 800; line-height: 1.1; }
+      .stat-value.green { color: var(--green); }
+      .stat-value.amber { color: var(--amber); }
+      .stat-value.red { color: var(--red); }
+      .status { display: inline-block; margin-top: 16px; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+      .good { background: rgba(16,185,129,0.15); color: var(--green); }
+      .warning { background: rgba(245,158,11,0.15); color: var(--amber); }
+      .critical { background: rgba(239,68,68,0.15); color: var(--red); }
+
+      .panel-card {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 24px;
+      }
+      .button-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+      .secondary-btn {
+        flex: 1;
+        min-width: 170px;
+        background: var(--white);
+        border: 1px solid var(--line);
+        color: var(--navy);
+        border-radius: 10px;
+        padding: 10px 16px;
+        font-weight: 600;
+      }
+      .secondary-btn:hover { border-color: var(--blue); color: var(--blue); background: rgba(37,99,235,0.03); }
+
+      .map-layout {
+        display: grid;
+        grid-template-columns: 340px 1fr;
+        background: rgba(255,255,255,0.72);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        overflow: hidden;
+        min-height: 640px;
+      }
+      .map-panel {
+        background: rgba(255,255,255,0.55);
+        border-right: 1px solid var(--line);
+        padding: 18px;
+        overflow-y: auto;
+      }
+      .map-panel h3 { margin: 0 0 6px; font-size: 1.2rem; }
+      .subtitle { margin: 0 0 20px; font-size: 13px; line-height: 1.6; color: var(--muted); }
+      .map-field { margin-bottom: 18px; }
+      .map-field label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+      .map-field select {
+        border: 1px solid #d9dde4;
+        border-radius: 10px;
+        background: #f6f8fb;
+        font-size: 15px;
+        min-height: 42px;
+      }
+
+      .route-actions { display: flex; gap: 8px; margin: 12px 0 18px; }
+      .route-actions .primary-btn { border-radius: 10px; font-weight: 700; min-height: 42px; }
+      .route-card {
+        background: rgba(255,255,255,0.6);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 14px 12px;
+        margin-top: 16px;
+      }
+      .card-title {
+        margin-bottom: 10px;
+        color: var(--muted);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 700;
+      }
+      .route-summary-content { line-height: 1.6; font-size: 14px; color: var(--navy); }
+      .route-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+      .route-stats .stat { padding: 10px 8px; border-radius: 8px; background: #f8fafc; border: 1px solid #edf2f7; }
+      .route-stats .label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.05em; }
+      .route-stats .value { display: block; font-size: 14px; font-weight: 700; }
+
+      #map { width: 100%; height: 100%; min-height: 640px; background: #dfeaf6; }
+      .directions-list { display: flex; flex-direction: column; gap: 10px; }
+      .direction-step {
+        display: grid;
+        grid-template-columns: 26px 1fr;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid #edf2f7;
+      }
+      .direction-step:last-child { border-bottom: none; }
+      .step-number {
+        width: 24px; height: 24px; border-radius: 50%; background: var(--blue); color: var(--white);
+        display: grid; place-items: center; font-size: 12px; font-weight: 700;
+      }
+      .step-instruction { font-size: 13px; font-weight: 600; color: var(--navy); }
+      .step-distance { font-size: 12px; color: var(--muted); white-space: nowrap; }
+      .legend-row { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: 13px; color: var(--navy); }
+      .dot { width: 11px; height: 11px; display: inline-block; border-radius: 50%; }
+      .dot.green { background: #188038; }
+      .dot.amber { background: #f9ab00; }
+      .dot.red { background: #d93025; }
+      .traffic-list { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 16px; }
+      .traffic-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f1f3f4; }
+      .traffic-item:last-child { border-bottom: none; }
+      .traffic-item strong { display: block; margin-bottom: 2px; font-size: 13px; }
+      .traffic-item small { font-size: 12px; color: var(--muted); }
+      .traffic-item .summary { display: flex; align-items: center; gap: 8px; }
+
+      @media (max-width: 900px) {
+        .map-layout { grid-template-columns: 1fr; }
+        .map-panel { border-right: 0; border-bottom: 1px solid var(--line); }
+        #map { height: 60vh; min-height: 420px; }
+      }
+      @media (max-width: 700px) {
+        .app { grid-template-columns: 1fr; }
+        .topbar { padding: 0 14px; }
+        .main-content { padding: 18px; }
+        .route-stats { grid-template-columns: 1fr; }
+      }
+    </style>
   </head>
   <body>
     <section id="login" class="login-screen">
@@ -30,12 +294,7 @@
 
         <div class="field">
           <label for="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            autocomplete="current-password"
-            required
-          />
+          <input id="password" type="password" autocomplete="current-password" required />
         </div>
 
         <button type="submit" class="primary-btn">Sign In</button>
@@ -53,95 +312,52 @@
           <div class="brand-mark">🚦</div>
           <div>
             <div class="brand-title">Smart Traffic</div>
-            <small>Quezon City District 2 operations</small>
+            <small>Quezon City District 2</small>
           </div>
         </div>
 
         <div class="user-panel">
-          <div id="userName" class="user-name">Administrator</div>
-          <div id="userRole" class="user-role">Administrator</div>
+          <div>
+            <div id="userName" class="user-name">Administrator</div>
+            <div id="userRole" class="user-role">Administrator</div>
+          </div>
           <button id="logoutBtn" class="logout-btn" type="button">Logout</button>
         </div>
       </header>
 
       <aside class="sidebar">
-        <nav class="nav" aria-label="Main navigation">
-          <button class="nav-btn active" data-page="dashboard" type="button">
-            📊 Dashboard
-          </button>
-          <button class="nav-btn" data-page="live-map" type="button">
-            🗺️ Live Map
-          </button>
-          <button class="nav-btn" data-page="traffic" type="button">
-            🚗 Traffic Monitoring
-          </button>
-          <button class="nav-btn" data-page="reports" type="button">
-            📋 Reports
-          </button>
+        <nav class="nav">
+          <button class="nav-btn active" data-page="dashboard" type="button">📊 Dashboard</button>
+          <button class="nav-btn" data-page="live-map" type="button">🗺️ Live Map</button>
+          <button class="nav-btn" data-page="traffic" type="button">🚗 Traffic Monitoring</button>
+          <button class="nav-btn" data-page="reports" type="button">📋 Reports</button>
         </nav>
       </aside>
 
       <main class="main-content">
         <section id="dashboard" class="page active">
-          <div class="page-header">
-            <h2>Dashboard</h2>
-          </div>
-
+          <div class="page-header"><h2>Dashboard</h2></div>
           <div class="stats-grid">
-            <article class="stat-card">
-              <h3>Free Flow Roads</h3>
-              <div class="stat-value green">12</div>
-              <p>Roads with smooth traffic</p>
-              <span class="status good">✓ Normal</span>
-            </article>
-
-            <article class="stat-card">
-              <h3>Moderate Traffic</h3>
-              <div class="stat-value amber">8</div>
-              <p>Slower than usual</p>
-              <span class="status warning">⚠ Caution</span>
-            </article>
-
-            <article class="stat-card">
-              <h3>Congested Roads</h3>
-              <div class="stat-value red">3</div>
-              <p>Heavy congestion</p>
-              <span class="status critical">✕ Critical</span>
-            </article>
+            <div class="stat-card"><h3>Free Flow Roads</h3><div class="stat-value green">12</div><p>Roads with smooth traffic</p><span class="status good">✓ Normal</span></div>
+            <div class="stat-card"><h3>Moderate Traffic</h3><div class="stat-value amber">8</div><p>Slower than usual</p><span class="status warning">⚠ Caution</span></div>
+            <div class="stat-card"><h3>Congested Roads</h3><div class="stat-value red">3</div><p>Heavy congestion</p><span class="status critical">✕ Critical</span></div>
           </div>
-
-          <article class="panel-card">
-            <h3>Quick Actions</h3>
-            <p>Access key features and tools</p>
-            <div class="button-row">
-              <button class="secondary-btn" data-go="live-map" type="button">
-                🗺️ View Live Map
-              </button>
-              <button class="secondary-btn" data-go="traffic" type="button">
-                🚗 Check Traffic
-              </button>
-              <button class="secondary-btn" data-go="reports" type="button">
-                📋 View Reports
-              </button>
-            </div>
-          </article>
+          <div class="panel-card"><h3>Quick Actions</h3><p>Access key features and tools</p><div class="button-row">
+            <button class="secondary-btn" data-go="live-map" type="button">🗺️ View Live Map</button>
+            <button class="secondary-btn" data-go="traffic" type="button">🚗 Check Traffic</button>
+            <button class="secondary-btn" data-go="reports" type="button">📋 View Reports</button>
+          </div></div>
         </section>
 
         <section id="live-map" class="page">
-          <div class="page-header">
-            <h2>District 2 Live Traffic Map</h2>
-          </div>
-
+          <div class="page-header"><h2>District 2 Live Traffic Map</h2></div>
           <div class="map-layout">
             <aside class="map-panel">
               <h3>Quezon City District 2</h3>
-              <p class="subtitle">
-                Traffic conditions, destinations, and directions within Quezon City
-                District 2
-              </p>
+              <p class="subtitle">Traffic conditions, destinations, and directions within Quezon City District 2</p>
 
               <div class="map-field">
-                <label for="origin">Starting Point</label>
+                <label for="origin">STARTING POINT</label>
                 <select id="origin">
                   <option value="14.6938,121.1020">Batasan Hills</option>
                   <option value="14.6895,121.0825">Commonwealth</option>
@@ -152,7 +368,7 @@
               </div>
 
               <div class="map-field">
-                <label for="destination">Destination</label>
+                <label for="destination">DESTINATION</label>
                 <select id="destination">
                   <option value="14.6895,121.0825">Commonwealth</option>
                   <option value="14.6938,121.1020">Batasan Hills</option>
@@ -163,19 +379,13 @@
               </div>
 
               <div class="route-actions">
-                <button id="directionsBtn" class="primary-btn compact" type="button">
-                  Directions
-                </button>
-                <button id="clearBtn" class="secondary-btn compact" type="button">
-                  Clear
-                </button>
+                <button id="directionsBtn" class="primary-btn compact" type="button">Directions</button>
+                <button id="clearBtn" class="secondary-btn compact" type="button" style="background:#f3f4f6;border:1px solid var(--line);color:var(--navy);padding:10px 18px;border-radius:10px;font-weight:700;">Clear</button>
               </div>
 
               <div class="route-card">
                 <div class="card-title">Route Summary</div>
-                <div id="routeSummary" class="route-summary-content">
-                  Choose two Quezon City locations, then select Directions.
-                </div>
+                <div id="routeSummary" class="route-summary-content">Choose two Quezon City locations, then select Directions.</div>
               </div>
 
               <div class="route-card">
@@ -185,109 +395,377 @@
 
               <div class="route-card">
                 <div class="card-title">Traffic Legend</div>
-                <div class="legend-row">
-                  <span class="dot green"></span>
-                  Free flow
-                </div>
-                <div class="legend-row">
-                  <span class="dot amber"></span>
-                  Moderate traffic
-                </div>
-                <div class="legend-row">
-                  <span class="dot red"></span>
-                  Heavy traffic
-                </div>
+                <div class="legend-row"><span class="dot green"></span>Free flow</div>
+                <div class="legend-row"><span class="dot amber"></span>Moderate traffic</div>
+                <div class="legend-row"><span class="dot red"></span>Heavy traffic</div>
               </div>
 
               <div class="route-card">
                 <div class="card-title">Quezon City Roads</div>
                 <div id="trafficList" class="traffic-list"></div>
-                <button id="refreshBtn" class="primary-btn compact" type="button">
-                  ↻ Refresh Traffic
-                </button>
+                <button id="refreshBtn" class="primary-btn compact" type="button" style="margin-top:12px;">↻ Refresh Traffic</button>
               </div>
             </aside>
 
-            <div id="map" aria-label="Interactive map for Quezon City traffic"></div>
+            <div id="map" aria-label="Interactive map focused on Quezon City"></div>
           </div>
         </section>
 
         <section id="traffic" class="page">
-          <div class="page-header">
-            <h2>Traffic Monitoring</h2>
-          </div>
-
-          <div class="stats-grid traffic-grid">
-            <article class="stat-card">
-              <h3>EDSA North</h3>
-              <div class="stat-value green">20%</div>
-              <p>Current congestion level</p>
-              <span class="status good">Free Flow</span>
-            </article>
-
-            <article class="stat-card">
-              <h3>Commonwealth Avenue</h3>
-              <div class="stat-value red">85%</div>
-              <p>Current congestion level</p>
-              <span class="status critical">Congested</span>
-            </article>
-
-            <article class="stat-card">
-              <h3>Quezon Avenue</h3>
-              <div class="stat-value green">30%</div>
-              <p>Current congestion level</p>
-              <span class="status good">Free Flow</span>
-            </article>
-
-            <article class="stat-card">
-              <h3>Katipunan Avenue</h3>
-              <div class="stat-value red">75%</div>
-              <p>Current congestion level</p>
-              <span class="status critical">Heavy Traffic</span>
-            </article>
+          <div class="page-header"><h2>Traffic Monitoring</h2></div>
+          <div class="stats-grid">
+            <div class="stat-card"><h3>EDSA North</h3><div class="stat-value green">20%</div><p>Current congestion level</p><span class="status good">Free Flow</span></div>
+            <div class="stat-card"><h3>Commonwealth Avenue</h3><div class="stat-value red">85%</div><p>Current congestion level</p><span class="status critical">Congested</span></div>
+            <div class="stat-card"><h3>Quezon Avenue</h3><div class="stat-value green">30%</div><p>Current congestion level</p><span class="status good">Free Flow</span></div>
+            <div class="stat-card"><h3>Katipunan Avenue</h3><div class="stat-value red">75%</div><p>Current congestion level</p><span class="status critical">Heavy Traffic</span></div>
           </div>
         </section>
 
         <section id="reports" class="page">
-          <div class="page-header">
-            <h2>Reports &amp; Analytics</h2>
+          <div class="page-header"><h2>Reports &amp; Analytics</h2></div>
+          <div class="stats-grid">
+            <div class="stat-card"><h3>Morning Peak</h3><div class="stat-value">7–9 AM</div><p>Morning peak traffic</p></div>
+            <div class="stat-card"><h3>Evening Peak</h3><div class="stat-value">5–7 PM</div><p>Afternoon/evening traffic</p></div>
+            <div class="stat-card"><h3>Average Congestion</h3><div class="stat-value amber">45%</div><p>Current city average</p></div>
           </div>
-
-          <div class="stats-grid report-grid">
-            <article class="stat-card compact-card">
-              <h3>Morning Peak</h3>
-              <div class="stat-value text">7–9 AM</div>
-              <p>Morning peak traffic</p>
-            </article>
-
-            <article class="stat-card compact-card">
-              <h3>Evening Peak</h3>
-              <div class="stat-value text">5–7 PM</div>
-              <p>Afternoon/evening traffic</p>
-            </article>
-
-            <article class="stat-card compact-card">
-              <h3>Average Congestion</h3>
-              <div class="stat-value amber">45%</div>
-              <p>Current city average</p>
-            </article>
-          </div>
-
-          <article class="panel-card report-summary">
-            <h3>Traffic Summary</h3>
-            <p>Peak Hours: <strong>7–9 AM, 5–7 PM</strong></p>
-            <p>Average Congestion: <strong>45%</strong></p>
-            <p>Most Congested Road: <strong>Commonwealth Avenue</strong></p>
-          </article>
+          <div class="panel-card"><h3>Traffic Summary</h3><p>Peak Hours: <strong>7–9 AM, 5–7 PM</strong></p><p>Average Congestion: <strong>45%</strong></p><p>Most Congested Road: <strong>Commonwealth Avenue</strong></p></div>
         </section>
       </main>
     </div>
 
-    <script
-      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-      crossorigin=""
-    ></script>
-    <script src="script.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script>
+      const users = {
+        aeronn: { name: 'Administrator' },
+        angel: { name: 'Administrator' },
+        lance: { name: 'Administrator' }
+      };
+
+      const $ = (id) => document.getElementById(id);
+
+      function showApp(username) {
+        $('userName').textContent = username.charAt(0).toUpperCase() + username.slice(1);
+        $('userRole').textContent = users[username].name;
+        $('login').classList.add('hidden');
+        $('app').classList.remove('hidden');
+        setTimeout(() => {
+          if (window.trafficMap) window.trafficMap.invalidateSize();
+        }, 300);
+      }
+
+      $('loginForm').addEventListener('submit', (event) => {
+        event.preventDefault();
+        const username = $('username').value.trim().toLowerCase();
+        const password = $('password').value;
+        if (users[username] && password === '1234') {
+          localStorage.setItem('currentUser', username);
+          showApp(username);
+        } else {
+          alert('Invalid username or password.');
+        }
+      });
+
+      $('logoutBtn').addEventListener('click', () => {
+        localStorage.removeItem('currentUser');
+        $('loginForm').reset();
+        $('app').classList.add('hidden');
+        $('login').classList.remove('hidden');
+        navigateTo('dashboard');
+      });
+
+      const savedUser = localStorage.getItem('currentUser');
+      if (savedUser && users[savedUser]) showApp(savedUser);
+
+      function navigateTo(page) {
+        document.querySelectorAll('.page').forEach((section) => {
+          section.classList.toggle('active', section.id === page);
+        });
+        document.querySelectorAll('.nav-btn').forEach((button) => {
+          button.classList.toggle('active', button.dataset.page === page);
+        });
+        if (page === 'live-map' && window.trafficMap) {
+          setTimeout(() => window.trafficMap.invalidateSize(), 200);
+        }
+      }
+
+      document.querySelectorAll('.nav-btn').forEach((button) => {
+        button.addEventListener('click', () => navigateTo(button.dataset.page));
+      });
+      document.querySelectorAll('[data-go]').forEach((button) => {
+        button.addEventListener('click', () => navigateTo(button.dataset.go));
+      });
+
+      const qcCenter = [14.6915, 121.092];
+      const qcBounds = L.latLngBounds([14.655, 121.045], [14.725, 121.135]);
+      const trafficMap = L.map('map', {
+        zoomControl: true,
+        maxBounds: qcBounds,
+        maxBoundsViscosity: 1,
+        minZoom: 12
+      }).setView(qcCenter, 13);
+      window.trafficMap = trafficMap;
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(trafficMap);
+
+      const roads = [
+        { name: 'Commonwealth Avenue', point: [14.6895, 121.0825], status: 'red', speed: 16 },
+        { name: 'Batasan Road', point: [14.6938, 121.102], status: 'amber', speed: 25 },
+        { name: 'Batasan–San Mateo Road', point: [14.697, 121.105], status: 'red', speed: 18 },
+        { name: 'Litex Road', point: [14.6825, 121.091], status: 'amber', speed: 27 },
+        { name: 'Payatas Road', point: [14.7, 121.11], status: 'green', speed: 38 },
+        { name: 'Holy Spirit Drive', point: [14.687, 121.0735], status: 'green', speed: 35 },
+        { name: 'Bagong Silangan Road', point: [14.6755, 121.098], status: 'amber', speed: 24 }
+      ];
+
+      const colors = { green: '#188038', amber: '#f9ab00', red: '#d93025' };
+      const labels = { green: 'Free flow', amber: 'Moderate', red: 'Heavy traffic' };
+      const roadMarkers = [];
+
+      function roadPopup(road) {
+        return `<strong>${road.name}</strong><br><span style="color:${colors[road.status]}">${labels[road.status]}</span><br>Average speed: ${road.speed} km/h`;
+      }
+
+      roads.forEach((road) => {
+        const marker = L.circleMarker(road.point, {
+          radius: 9,
+          color: '#fff',
+          weight: 2,
+          fillColor: colors[road.status],
+          fillOpacity: 0.95
+        }).addTo(trafficMap);
+        marker.bindPopup(roadPopup(road));
+        roadMarkers.push({ marker, road });
+      });
+
+      function renderTrafficList() {
+        const trafficList = $('trafficList');
+        trafficList.innerHTML = '';
+        roads.forEach((road) => {
+          const row = document.createElement('div');
+          row.className = 'traffic-item';
+          row.innerHTML = `<div class="summary"><span class="dot ${road.status}"></span><div><strong>${road.name}</strong><small>${labels[road.status]}</small></div></div><small>${road.speed} km/h</small>`;
+          trafficList.appendChild(row);
+        });
+      }
+      renderTrafficList();
+
+      let activeRoute = null;
+      let routeMarkers = [];
+      let currentRoute = [];
+
+      function parseCoords(value) {
+        const [lat, lng] = value.split(',').map(Number);
+        return [lat, lng];
+      }
+
+      function haversine(a, b) {
+        const toRad = (deg) => (deg * Math.PI) / 180;
+        const dLat = toRad(b[0] - a[0]);
+        const dLng = toRad(b[1] - a[1]);
+        const lat1 = toRad(a[0]);
+        const lat2 = toRad(b[0]);
+        const h = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.sin(dLng / 2) * Math.sin(dLng / 2) * Math.cos(lat1) * Math.cos(lat2);
+        const c = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+        return 6371 * c;
+      }
+
+      function nearestRoad(coord) {
+        let best = null;
+        roads.forEach((road) => {
+          const distance = haversine(coord, road.point);
+          if (!best || distance < best.distance) best = { road, distance };
+        });
+        return best;
+      }
+
+      function buildRoadGraph() {
+        return roads.map((road, roadIndex) => {
+          return roads
+            .map((otherRoad, otherIndex) => {
+              if (roadIndex === otherIndex) return null;
+              return { index: otherIndex, distance: haversine(road.point, otherRoad.point) };
+            })
+            .filter(Boolean)
+            .sort((a, b) => a.distance - b.distance)
+            .slice(0, 3);
+        });
+      }
+
+      const roadGraph = buildRoadGraph();
+
+      function findRoadPath(startRoadName, endRoadName) {
+        const startIndex = roads.findIndex((road) => road.name === startRoadName);
+        const endIndex = roads.findIndex((road) => road.name === endRoadName);
+        if (startIndex === -1 || endIndex === -1) return [];
+        if (startIndex === endIndex) return [startIndex];
+
+        const queue = [{ index: startIndex, cost: 0, path: [startIndex] }];
+        const best = new Map([[startIndex, { cost: 0, path: [startIndex] }]]);
+
+        while (queue.length) {
+          queue.sort((a, b) => a.cost - b.cost);
+          const current = queue.shift();
+          if (current.index === endIndex) return current.path;
+          if (current.path.length > roads.length) continue;
+
+          for (const neighbor of roadGraph[current.index] || []) {
+            const nextCost = current.cost + neighbor.distance;
+            const nextPath = [...current.path, neighbor.index];
+            const existingBest = best.get(neighbor.index);
+            if (!existingBest || nextCost < existingBest.cost) {
+              best.set(neighbor.index, { cost: nextCost, path: nextPath });
+              queue.push({ index: neighbor.index, cost: nextCost, path: nextPath });
+            }
+          }
+        }
+
+        return [startIndex, endIndex];
+      }
+
+      function buildRoadRoute(origin, destination) {
+        const startRoad = nearestRoad(origin);
+        const endRoad = nearestRoad(destination);
+        const roadPath = findRoadPath(startRoad.road.name, endRoad.road.name).map((idx) => roads[idx].point);
+        currentRoute = findRoadPath(startRoad.road.name, endRoad.road.name);
+
+        const routePoints = [origin, ...roadPath, destination];
+        return routePoints.filter((point, index, arr) => {
+          return !arr.slice(0, index).some((prev) => prev[0] === point[0] && prev[1] === point[1]);
+        });
+      }
+
+      function clearRouteMarkers() {
+        routeMarkers.forEach((marker) => {
+          if (marker && trafficMap.hasLayer(marker)) trafficMap.removeLayer(marker);
+        });
+        routeMarkers = [];
+      }
+
+      function createDirectionArrows(points) {
+        clearRouteMarkers();
+        if (!points || points.length < 2) return;
+        for (let i = 0; i < points.length - 1; i += 1) {
+          const start = points[i];
+          const end = points[i + 1];
+          const mid = [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2];
+          const angle = Math.atan2(end[1] - start[1], end[0] - start[0]) * 180 / Math.PI;
+          const arrowMarker = L.marker(mid, {
+            icon: L.divIcon({
+              className: 'route-arrow-icon',
+              html: `<div style="font-size:18px;color:#2364d8;transform:rotate(${angle}deg);display:flex;align-items:center;justify-content:center;width:20px;height:20px;">➤</div>`,
+              iconSize: [20, 20],
+              iconAnchor: [10, 10]
+            })
+          }).addTo(trafficMap);
+          routeMarkers.push(arrowMarker);
+        }
+      }
+
+      function generateDirections(routeIndexes, origin, destination) {
+        const directions = [];
+        if (routeIndexes.length === 0) return directions;
+
+        const firstRoad = roads[routeIndexes[0]];
+        const firstBearing = Math.atan2(firstRoad.point[1] - origin[1], firstRoad.point[0] - origin[0]) * 180 / Math.PI;
+        const firstCompass = (firstBearing + 360) % 360;
+        let firstDir = 'Head';
+        if (firstCompass < 45 || firstCompass >= 315) firstDir += ' North';
+        else if (firstCompass < 135) firstDir += ' East';
+        else if (firstCompass < 225) firstDir += ' South';
+        else firstDir += ' West';
+        directions.push({ instruction: `${firstDir} on ${firstRoad.name}`, distance: Math.round(haversine(origin, firstRoad.point) * 1000), type: 'start' });
+
+        for (let i = 1; i < routeIndexes.length; i++) {
+          const prevRoad = roads[routeIndexes[i - 1]];
+          const currRoad = roads[routeIndexes[i]];
+          const prevBearing = Math.atan2(prevRoad.point[1] - (i > 1 ? roads[routeIndexes[i - 2]].point[1] : origin[1]), prevRoad.point[0] - (i > 1 ? roads[routeIndexes[i - 2]].point[0] : origin[0])) * 180 / Math.PI;
+          const currBearing = Math.atan2(currRoad.point[1] - prevRoad.point[1], currRoad.point[0] - prevRoad.point[0]) * 180 / Math.PI;
+          const angleDiff = (currBearing - prevBearing + 360) % 360;
+          let turn = 'Continue on';
+          if (angleDiff > 30 && angleDiff < 150) turn = 'Turn left onto';
+          else if (angleDiff > 210 && angleDiff < 330) turn = 'Turn right onto';
+          else if (angleDiff > 150 && angleDiff < 210) turn = 'Make a U-turn on';
+          directions.push({ instruction: `${turn} ${currRoad.name}`, distance: Math.round(haversine(prevRoad.point, currRoad.point) * 1000), type: 'turn' });
+        }
+
+        const lastRoad = roads[routeIndexes[routeIndexes.length - 1]];
+        directions.push({ instruction: 'Arrive at destination', distance: Math.round(haversine(lastRoad.point, destination) * 1000), type: 'end' });
+        return directions;
+      }
+
+      function renderDirections(directions) {
+        const list = $('directions-list');
+        list.innerHTML = '';
+        directions.forEach((dir, index) => {
+          const item = document.createElement('div');
+          item.className = 'direction-step';
+          item.innerHTML = `<div class="step-number">${index + 1}</div><div><div class="step-instruction">${dir.instruction}</div><div class="step-distance">${dir.distance}m</div></div>`;
+          list.appendChild(item);
+        });
+      }
+
+      function updateRouteSummary(origin, destination, directions) {
+        const originName = $('origin').selectedOptions[0].textContent;
+        const destinationName = $('destination').selectedOptions[0].textContent;
+        let totalDistance = 0;
+        directions.forEach((dir) => totalDistance += dir.distance);
+        const estTime = Math.ceil(totalDistance / 1000 / 30);
+        routeSummary.innerHTML = `<strong>${originName}</strong> → <strong>${destinationName}</strong><br><div class="route-stats"><div class="stat"><span class="label">Distance:</span><span class="value">${(totalDistance / 1000).toFixed(1)} km</span></div><div class="stat"><span class="label">Est. Time:</span><span class="value">${estTime} min</span></div><div class="stat"><span class="label">Steps:</span><span class="value">${directions.length}</span></div></div>`;
+      }
+
+      $('directionsBtn').addEventListener('click', () => {
+        const originValue = $('origin').value;
+        const destinationValue = $('destination').value;
+        if (!originValue || !destinationValue) return;
+        if (activeRoute) trafficMap.removeLayer(activeRoute);
+
+        const origin = parseCoords(originValue);
+        const destination = parseCoords(destinationValue);
+        const routePoints = buildRoadRoute(origin, destination);
+        activeRoute = L.polyline(routePoints, { color: '#2364d8', weight: 4, opacity: 0.9, smoothFactor: 1.5 }).addTo(trafficMap);
+        createDirectionArrows(routePoints);
+
+        const startMarker = L.circleMarker(origin, { radius: 8, color: '#fff', weight: 2, fillColor: '#2364d8', fillOpacity: 0.9 }).addTo(trafficMap);
+        const endMarker = L.circleMarker(destination, { radius: 8, color: '#fff', weight: 2, fillColor: '#2364d8', fillOpacity: 0.9 }).addTo(trafficMap);
+        routeMarkers.push(startMarker, endMarker);
+
+        trafficMap.fitBounds(L.latLngBounds(routePoints), { padding: [30, 30] });
+        const directions = generateDirections(currentRoute, origin, destination);
+        renderDirections(directions);
+        updateRouteSummary(origin, destination, directions);
+      });
+
+      $('clearBtn').addEventListener('click', () => {
+        if (activeRoute) {
+          trafficMap.removeLayer(activeRoute);
+          activeRoute = null;
+        }
+        clearRouteMarkers();
+        routeSummary.textContent = 'Choose two Quezon City locations, then select Directions.';
+        $('directions-list').innerHTML = '';
+        currentRoute = [];
+      });
+
+      $('refreshBtn').addEventListener('click', () => {
+        roads.forEach((road) => {
+          const next = ['green', 'amber', 'red'][Math.floor(Math.random() * 3)];
+          road.status = next;
+          road.speed = next === 'green' ? 32 + Math.floor(Math.random() * 12) : next === 'amber' ? 18 + Math.floor(Math.random() * 12) : 12 + Math.floor(Math.random() * 10);
+        });
+        roadMarkers.forEach(({ marker, road }) => {
+          marker.setStyle({ fillColor: colors[road.status] });
+          marker.bindPopup(roadPopup(road));
+        });
+        renderTrafficList();
+      });
+
+      window.addEventListener('load', () => {
+        if (window.trafficMap) window.trafficMap.invalidateSize();
+      });
+      window.navigateTo = navigateTo;
+    </script>
   </body>
 </html>
