@@ -161,10 +161,109 @@ renderTrafficList();
 
 const routeSummary = $('routeSummary');
 let activeRoute = null;
+let routeMarkers = [];
 
 function parseCoords(value) {
   const [lat, lng] = value.split(',').map(Number);
   return [lat, lng];
+}
+
+function haversine(a, b) {
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const dLat = toRad(b[0] - a[0]);
+  const dLng = toRad(b[1] - a[1]);
+  const lat1 = toRad(a[0]);
+  const lat2 = toRad(b[0]);
+
+  const h =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.sin(dLng / 2) * Math.sin(dLng / 2) * Math.cos(lat1) * Math.cos(lat2);
+
+  const c = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+  return 6371 * c;
+}
+
+function nearestRoad(coord) {
+  let best = null;
+
+  roads.forEach((road) => {
+    const distance = haversine(coord, road.point);
+    if (!best || distance < best.distance) {
+      best = { road, distance };
+    }
+  });
+
+  return best;
+}
+
+function buildRoadRoute(origin, destination) {
+  const startRoad = nearestRoad(origin);
+  const endRoad = nearestRoad(destination);
+
+  const roadCandidates = roads
+    .filter((road) => road.name !== startRoad.road.name && road.name !== endRoad.road.name)
+    .map((road) => ({
+      road,
+      score:
+        haversine(origin, road.point) +
+        haversine(destination, road.point) +
+        haversine(startRoad.road.point, road.point) +
+        haversine(endRoad.road.point, road.point)
+    }))
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 3)
+    .map((item) => item.road.point);
+
+  const routePoints = [
+    origin,
+    startRoad.road.point,
+    ...roadCandidates,
+    endRoad.road.point,
+    destination
+  ];
+
+  return routePoints.filter((point, index, arr) => {
+    return !arr.slice(0, index).some((prev) => prev[0] === point[0] && prev[1] === point[1]);
+  });
+}
+
+function clearRouteMarkers() {
+  routeMarkers.forEach((marker) => {
+    if (marker && trafficMap.hasLayer(marker)) {
+      trafficMap.removeLayer(marker);
+    }
+  });
+  routeMarkers = [];
+}
+
+function createDirectionArrows(points) {
+  clearRouteMarkers();
+
+  if (!points || points.length < 2) {
+    return;
+  }
+
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const start = points[i];
+    const end = points[i + 1];
+    const mid = [
+      (start[0] + end[0]) / 2,
+      (start[1] + end[1]) / 2
+    ];
+
+    const angle = Math.atan2(end[1] - start[1], end[0] - start[0]) * 180 / Math.PI;
+
+    const arrowMarker = L.marker(mid, {
+      icon: L.divIcon({
+        className: 'route-arrow-icon',
+        html: `<div style="font-size:18px;color:#1d4ed8;transform:rotate(${angle}deg);display:flex;align-items:center;justify-content:center;width:20px;height:20px;">➤</div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      })
+    }).addTo(trafficMap);
+
+    routeMarkers.push(arrowMarker);
+  }
 }
 
 function updateRouteSummary(origin, destination) {
@@ -181,7 +280,7 @@ function updateRouteSummary(origin, destination) {
   routeSummary.innerHTML = `
     From <strong>${originName}</strong> to <strong>${destinationName}</strong><br>
     Estimated distance: <strong>${distanceKm} km</strong><br>
-    Traffic status: <strong>${distanceKm < 4 ? 'Light to moderate' : 'Moderate to heavy'}</strong>
+    Route follows the major road network around District 2.
   `;
 }
 
@@ -199,14 +298,17 @@ $('directionsBtn').addEventListener('click', () => {
 
   const origin = parseCoords(originValue);
   const destination = parseCoords(destinationValue);
+  const routePoints = buildRoadRoute(origin, destination);
 
-  activeRoute = L.polyline([origin, destination], {
+  activeRoute = L.polyline(routePoints, {
     color: '#2563eb',
     weight: 4,
     opacity: 0.9
   }).addTo(trafficMap);
 
-  L.circleMarker(origin, {
+  createDirectionArrows(routePoints);
+
+  const startMarker = L.circleMarker(origin, {
     radius: 8,
     color: '#fff',
     weight: 2,
@@ -214,7 +316,7 @@ $('directionsBtn').addEventListener('click', () => {
     fillOpacity: 0.9
   }).addTo(trafficMap);
 
-  L.circleMarker(destination, {
+  const endMarker = L.circleMarker(destination, {
     radius: 8,
     color: '#fff',
     weight: 2,
@@ -222,7 +324,9 @@ $('directionsBtn').addEventListener('click', () => {
     fillOpacity: 0.9
   }).addTo(trafficMap);
 
-  trafficMap.fitBounds(L.latLngBounds([origin, destination]), {
+  routeMarkers.push(startMarker, endMarker);
+
+  trafficMap.fitBounds(L.latLngBounds(routePoints), {
     padding: [30, 30]
   });
 
@@ -235,11 +339,7 @@ $('clearBtn').addEventListener('click', () => {
     activeRoute = null;
   }
 
-  trafficMap.eachLayer((layer) => {
-    if (layer instanceof L.CircleMarker && layer.getRadius && layer.getRadius() === 8) {
-      trafficMap.removeLayer(layer);
-    }
-  });
+  clearRouteMarkers();
 
   routeSummary.textContent = 'Choose two Quezon City locations, then select Directions.';
 });
@@ -268,227 +368,3 @@ window.addEventListener('load', () => {
 });
 
 window.navigateTo = navigateTo;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
