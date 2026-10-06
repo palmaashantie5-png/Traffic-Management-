@@ -161,10 +161,57 @@ renderTrafficList();
 
 const routeSummary = $('routeSummary');
 let activeRoute = null;
+let routeMarkers = [];
 
 function parseCoords(value) {
   const [lat, lng] = value.split(',').map(Number);
   return [lat, lng];
+}
+
+function clearRouteMarkers() {
+  routeMarkers.forEach((marker) => {
+    if (marker && trafficMap.hasLayer(marker)) {
+      trafficMap.removeLayer(marker);
+    }
+  });
+  routeMarkers = [];
+}
+
+function createDirectionArrows(points) {
+  clearRouteMarkers();
+
+  if (!points || points.length < 2) {
+    return;
+  }
+
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const start = points[i];
+    const end = points[i + 1];
+    const mid = [
+      (start[0] + end[0]) / 2,
+      (start[1] + end[1]) / 2
+    ];
+
+    const angle = Math.atan2(end[1] - start[1], end[0] - start[0]) * 180 / Math.PI;
+
+    const arrowIcon = L.divIcon({
+      className: 'route-arrow-icon',
+      html: '<div style="font-size:18px;color:#1d4ed8;transform:rotate(0deg);">➤</div>',
+      iconSize: [20, 20],
+      iconAnchor: [10, 10]
+    });
+
+    const arrowMarker = L.marker(mid, {
+      icon: L.divIcon({
+        className: 'route-arrow-icon',
+        html: `<div style="font-size:18px;color:#1d4ed8;transform:rotate(${angle}deg);display:flex;align-items:center;justify-content:center;width:20px;height:20px;">➤</div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      })
+    }).addTo(trafficMap);
+
+    routeMarkers.push(arrowMarker);
+  }
 }
 
 function updateRouteSummary(origin, destination) {
@@ -206,7 +253,9 @@ $('directionsBtn').addEventListener('click', () => {
     opacity: 0.9
   }).addTo(trafficMap);
 
-  L.circleMarker(origin, {
+  createDirectionArrows([origin, destination]);
+
+  const startMarker = L.circleMarker(origin, {
     radius: 8,
     color: '#fff',
     weight: 2,
@@ -214,13 +263,15 @@ $('directionsBtn').addEventListener('click', () => {
     fillOpacity: 0.9
   }).addTo(trafficMap);
 
-  L.circleMarker(destination, {
+  const endMarker = L.circleMarker(destination, {
     radius: 8,
     color: '#fff',
     weight: 2,
     fillColor: '#ef4444',
     fillOpacity: 0.9
   }).addTo(trafficMap);
+
+  routeMarkers.push(startMarker, endMarker);
 
   trafficMap.fitBounds(L.latLngBounds([origin, destination]), {
     padding: [30, 30]
@@ -235,11 +286,7 @@ $('clearBtn').addEventListener('click', () => {
     activeRoute = null;
   }
 
-  trafficMap.eachLayer((layer) => {
-    if (layer instanceof L.CircleMarker && layer.getRadius && layer.getRadius() === 8) {
-      trafficMap.removeLayer(layer);
-    }
-  });
+  clearRouteMarkers();
 
   routeSummary.textContent = 'Choose two Quezon City locations, then select Directions.';
 });
@@ -268,227 +315,3 @@ window.addEventListener('load', () => {
 });
 
 window.navigateTo = navigateTo;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
