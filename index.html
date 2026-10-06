@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Quezon City Smart Traffic Management System"
+    />
+    <title>Smart Traffic Management</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <section id="login" class="login-screen">
+      <form id="loginForm" class="login-card" novalidate>
+        <div class="logo" aria-hidden="true">🚦</div>
+        <h1>Smart Traffic Management</h1>
+        <p class="muted">Sign in to continue</p>
+
+        <div class="field">
+          <label for="username">Username</label>
+          <input id="username" type="text" autocomplete="username" required />
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+        </div>
+
+        <button type="submit" class="primary-btn">Sign In</button>
+
+        <p class="demo-note">
+          Demo: aeronn / angel / lance<br />
+          Password: 1234
+        </p>
+      </form>
+    </section>
+
+    <div id="app" class="app hidden">
+      <header class="topbar">
+        <div class="brand-wrap">
+          <div class="brand-mark">🚦</div>
+          <div>
+            <div class="brand-title">Smart Traffic</div>
+            <small>Quezon City District 2 operations</small>
+          </div>
+        </div>
+
+        <div class="user-panel">
+          <div id="userName" class="user-name">Administrator</div>
+          <div id="userRole" class="user-role">Administrator</div>
+          <button id="logoutBtn" class="logout-btn" type="button">Logout</button>
+        </div>
+      </header>
+
+      <aside class="sidebar">
+        <nav class="nav" aria-label="Main navigation">
+          <button class="nav-btn active" data-page="dashboard" type="button">
+            📊 Dashboard
+          </button>
+          <button class="nav-btn" data-page="live-map" type="button">
+            🗺️ Live Map
+          </button>
+          <button class="nav-btn" data-page="traffic" type="button">
+            🚗 Traffic Monitoring
+          </button>
+          <button class="nav-btn" data-page="reports" type="button">
+            📋 Reports
+          </button>
+        </nav>
+      </aside>
+
+      <main class="main-content">
+        <section id="dashboard" class="page active">
+          <div class="page-header">
+            <h2>Dashboard</h2>
+          </div>
+
+          <div class="stats-grid">
+            <article class="stat-card">
+              <h3>Free Flow Roads</h3>
+              <div class="stat-value green">12</div>
+              <p>Roads with smooth traffic</p>
+              <span class="status good">✓ Normal</span>
+            </article>
+
+            <article class="stat-card">
+              <h3>Moderate Traffic</h3>
+              <div class="stat-value amber">8</div>
+              <p>Slower than usual</p>
+              <span class="status warning">⚠ Caution</span>
+            </article>
+
+            <article class="stat-card">
+              <h3>Congested Roads</h3>
+              <div class="stat-value red">3</div>
+              <p>Heavy congestion</p>
+              <span class="status critical">✕ Critical</span>
+            </article>
+          </div>
+
+          <article class="panel-card">
+            <h3>Quick Actions</h3>
+            <p>Access key features and tools</p>
+            <div class="button-row">
+              <button class="secondary-btn" data-go="live-map" type="button">
+                🗺️ View Live Map
+              </button>
+              <button class="secondary-btn" data-go="traffic" type="button">
+                🚗 Check Traffic
+              </button>
+              <button class="secondary-btn" data-go="reports" type="button">
+                📋 View Reports
+              </button>
+            </div>
+          </article>
+        </section>
+
+        <section id="live-map" class="page">
+          <div class="page-header">
+            <h2>District 2 Live Traffic Map</h2>
+          </div>
+
+          <div class="map-layout">
+            <aside class="map-panel">
+              <h3>Quezon City District 2</h3>
+              <p class="subtitle">
+                Traffic conditions, destinations, and directions within Quezon City
+                District 2
+              </p>
+
+              <div class="map-field">
+                <label for="origin">Starting Point</label>
+                <select id="origin">
+                  <option value="14.6938,121.1020">Batasan Hills</option>
+                  <option value="14.6895,121.0825">Commonwealth</option>
+                  <option value="14.6870,121.0735">Holy Spirit</option>
+                  <option value="14.7000,121.1100">Payatas</option>
+                  <option value="14.6755,121.0980">Bagong Silangan</option>
+                </select>
+              </div>
+
+              <div class="map-field">
+                <label for="destination">Destination</label>
+                <select id="destination">
+                  <option value="14.6895,121.0825">Commonwealth</option>
+                  <option value="14.6938,121.1020">Batasan Hills</option>
+                  <option value="14.6870,121.0735">Holy Spirit</option>
+                  <option value="14.7000,121.1100">Payatas</option>
+                  <option value="14.6755,121.0980">Bagong Silangan</option>
+                </select>
+              </div>
+
+              <div class="route-actions">
+                <button id="directionsBtn" class="primary-btn compact" type="button">
+                  Directions
+                </button>
+                <button id="clearBtn" class="secondary-btn compact" type="button">
+                  Clear
+                </button>
+              </div>
+
+              <div class="route-card">
+                <div class="card-title">Route Details</div>
+                <div id="routeSummary">
+                  Choose two Quezon City locations, then select Directions.
+                </div>
+              </div>
+
+              <div class="route-card">
+                <div class="card-title">Traffic Legend</div>
+                <div class="legend-row">
+                  <span class="dot green"></span>
+                  Free flow
+                </div>
+                <div class="legend-row">
+                  <span class="dot amber"></span>
+                  Moderate traffic
+                </div>
+                <div class="legend-row">
+                  <span class="dot red"></span>
+                  Heavy traffic
+                </div>
+              </div>
+
+              <div class="route-card">
+                <div class="card-title">Quezon City Roads</div>
+                <div id="trafficList" class="traffic-list"></div>
+                <button id="refreshBtn" class="primary-btn compact" type="button">
+                  ↻ Refresh Traffic
+                </button>
+              </div>
+            </aside>
+
+            <div id="map" aria-label="Interactive map for Quezon City traffic"></div>
+          </div>
+        </section>
+
+        <section id="traffic" class="page">
+          <div class="page-header">
+            <h2>Traffic Monitoring</h2>
+          </div>
+
+          <div class="stats-grid traffic-grid">
+            <article class="stat-card">
+              <h3>EDSA North</h3>
+              <div class="stat-value green">20%</div>
+              <p>Current congestion level</p>
+              <span class="status good">Free Flow</span>
+            </article>
+
+            <article class="stat-card">
+              <h3>Commonwealth Avenue</h3>
+              <div class="stat-value red">85%</div>
+              <p>Current congestion level</p>
+              <span class="status critical">Congested</span>
+            </article>
+
+            <article class="stat-card">
+              <h3>Quezon Avenue</h3>
+              <div class="stat-value green">30%</div>
+              <p>Current congestion level</p>
+              <span class="status good">Free Flow</span>
+            </article>
+
+            <article class="stat-card">
+              <h3>Katipunan Avenue</h3>
+              <div class="stat-value red">75%</div>
+              <p>Current congestion level</p>
+              <span class="status critical">Heavy Traffic</span>
+            </article>
+          </div>
+        </section>
+
+        <section id="reports" class="page">
+          <div class="page-header">
+            <h2>Reports &amp; Analytics</h2>
+          </div>
+
+          <div class="stats-grid report-grid">
+            <article class="stat-card compact-card">
+              <h3>Morning Peak</h3>
+              <div class="stat-value text">7–9 AM</div>
+              <p>Morning peak traffic</p>
+            </article>
+
+            <article class="stat-card compact-card">
+              <h3>Evening Peak</h3>
+              <div class="stat-value text">5–7 PM</div>
+              <p>Afternoon/evening traffic</p>
+            </article>
+
+            <article class="stat-card compact-card">
+              <h3>Average Congestion</h3>
+              <div class="stat-value amber">45%</div>
+              <p>Current city average</p>
+            </article>
+          </div>
+
+          <article class="panel-card report-summary">
+            <h3>Traffic Summary</h3>
+            <p>Peak Hours: <strong>7–9 AM, 5–7 PM</strong></p>
+            <p>Average Congestion: <strong>45%</strong></p>
+            <p>Most Congested Road: <strong>Commonwealth Avenue</strong></p>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script src="script.js"></script>
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+																																																																																																																																																																																																																						" 
+    
+  </body>
+</html>
+																																																																																																t
