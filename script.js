@@ -107,6 +107,8 @@ const colors = {
   red: '#d93025'
 };
 
+const directionColor = '#2563eb';
+
 const labels = {
   green: 'Free flow',
   amber: 'Moderate',
@@ -256,7 +258,7 @@ function createDirectionArrows(points) {
     const arrowMarker = L.marker(mid, {
       icon: L.divIcon({
         className: 'route-arrow-icon',
-        html: `<div style="font-size:18px;color:#1d4ed8;transform:rotate(${angle}deg);display:flex;align-items:center;justify-content:center;width:20px;height:20px;">➤</div>`,
+        html: `<div style="font-size:18px;color:${directionColor};transform:rotate(${angle}deg);display:flex;align-items:center;justify-content:center;width:20px;height:20px;">➤</div>`,
         iconSize: [20, 20],
         iconAnchor: [10, 10]
       })
@@ -301,7 +303,7 @@ $('directionsBtn').addEventListener('click', () => {
   const routePoints = buildRoadRoute(origin, destination);
 
   activeRoute = L.polyline(routePoints, {
-    color: '#2563eb',
+    color: directionColor,
     weight: 4,
     opacity: 0.9
   }).addTo(trafficMap);
@@ -312,7 +314,7 @@ $('directionsBtn').addEventListener('click', () => {
     radius: 8,
     color: '#fff',
     weight: 2,
-    fillColor: '#10b981',
+    fillColor: directionColor,
     fillOpacity: 0.9
   }).addTo(trafficMap);
 
@@ -320,7 +322,7 @@ $('directionsBtn').addEventListener('click', () => {
     radius: 8,
     color: '#fff',
     weight: 2,
-    fillColor: '#ef4444',
+    fillColor: directionColor,
     fillOpacity: 0.9
   }).addTo(trafficMap);
 
