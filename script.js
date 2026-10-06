@@ -262,38 +262,38 @@ function findRoadPath(startRoadName, endRoadName) {
   return [startIndex, endIndex];
 }
 
-// Catmull-Rom spline curve interpolation for smooth paths
-function catmullRom(p0, p1, p2, p3, t) {
-  const v0 = (p2 - p0) * 0.5;
-  const v1 = (p3 - p1) * 0.5;
-  const t2 = t * t;
-  const t3 = t * t2;
-  return (2 * p1 - 2 * p2 + v0 + v1) * t3 + (-3 * p1 + 3 * p2 - 2 * v0 - v1) * t2 + v0 * t + p1;
-}
-
-// Generate smooth curve through multiple points using Catmull-Rom spline
-function generateSmoothCurve(points, resolution = 10) {
-  if (points.length < 2) return points;
-  if (points.length === 2) return points;
-
-  const smoothedPoints = [];
-
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[Math.max(i - 1, 0)];
-    const p1 = points[i];
-    const p2 = points[i + 1];
-    const p3 = points[Math.min(i + 2, points.length - 1)];
-
-    for (let t = 0; t < 1; t += 1 / resolution) {
-      const lat = catmullRom(p0[0], p1[0], p2[0], p3[0], t);
-      const lng = catmullRom(p0[1], p1[1], p2[1], p3[1], t);
-      smoothedPoints.push([lat, lng]);
-    }
+function createCurvedRoute(points, bendFactor = 0.18) {
+  if (!points || points.length < 2) {
+    return points || [];
   }
 
-  // Add the final point
-  smoothedPoints.push(points[points.length - 1]);
-  return smoothedPoints;
+  if (points.length === 2) {
+    return points;
+  }
+
+  const start = points[0];
+  const end = points[points.length - 1];
+  const dx = end[0] - start[0];
+  const dy = end[1] - start[1];
+  const length = Math.hypot(dx, dy) || 1;
+
+  const normalX = -(dy / length);
+  const normalY = dx / length;
+  const offset = length * bendFactor;
+  const control = [
+    (start[0] + end[0]) / 2 + normalX * offset,
+    (start[1] + end[1]) / 2 + normalY * offset
+  ];
+
+  const curvedPoints = [];
+  for (let i = 0; i <= 50; i += 1) {
+    const t = i / 50;
+    const x = (1 - t) * (1 - t) * start[0] + 2 * (1 - t) * t * control[0] + t * t * end[0];
+    const y = (1 - t) * (1 - t) * start[1] + 2 * (1 - t) * t * control[1] + t * t * end[1];
+    curvedPoints.push([x, y]);
+  }
+
+  return curvedPoints;
 }
 
 function generateDirections(roadIndices, origin, destination) {
@@ -303,7 +303,6 @@ function generateDirections(roadIndices, origin, destination) {
     return directions;
   }
 
-  // Start direction
   const firstRoad = roads[roadIndices[0]];
   const bearing = Math.atan2(
     firstRoad.point[1] - origin[1],
@@ -324,7 +323,6 @@ function generateDirections(roadIndices, origin, destination) {
     type: 'start'
   });
 
-  // Turn-by-turn for each road segment
   for (let i = 1; i < roadIndices.length; i++) {
     const prevRoad = roads[roadIndices[i - 1]];
     const currentRoad = roads[roadIndices[i]];
@@ -362,7 +360,6 @@ function generateDirections(roadIndices, origin, destination) {
     });
   }
 
-  // Arrive direction
   const lastRoad = roads[roadIndices[roadIndices.length - 1]];
   const finalDistance = Math.round(haversine(lastRoad.point, destination) * 1000);
   directions.push({
@@ -410,13 +407,8 @@ function buildRoadRoute(origin, destination) {
 
   currentRoute = roadIndices;
 
-  // Build waypoints: origin -> road nodes -> destination
   const waypoints = [origin, ...roadPath, destination];
-
-  // Generate smooth curve through waypoints using Catmull-Rom spline
-  const smoothCurve = generateSmoothCurve(waypoints, 15);
-
-  return smoothCurve;
+  return createCurvedRoute(waypoints, 0.18);
 }
 
 function clearRouteMarkers() {
@@ -435,8 +427,7 @@ function createDirectionArrows(points) {
     return;
   }
 
-  // Add arrows every 10th segment for better spacing on curved route
-  for (let i = 0; i < points.length - 1; i += Math.max(10, Math.floor(points.length / 5))) {
+  for (let i = 0; i < points.length - 1; i += Math.max(8, Math.floor(points.length / 6))) {
     const start = points[i];
     const end = points[Math.min(i + 1, points.length - 1)];
     const mid = [
@@ -463,19 +454,12 @@ function updateRouteSummary(origin, destination, directions) {
   const originName = $('origin').selectedOptions[0].textContent;
   const destinationName = $('destination').selectedOptions[0].textContent;
 
-  const distanceKm = Math.round(
-    Math.hypot(
-      destination[0] - origin[0],
-      destination[1] - origin[1]
-    ) * 111.2 * 10
-  ) / 10;
-
   let totalDistance = 0;
   directions.forEach((dir) => {
     totalDistance += dir.distance;
   });
 
-  const estimatedTime = Math.ceil(totalDistance / 1000 / 30); // assume 30 km/h average
+  const estimatedTime = Math.ceil(totalDistance / 1000 / 30);
 
   routeSummary.innerHTML = `
     <strong>${originName}</strong> → <strong>${destinationName}</strong><br>
@@ -515,8 +499,8 @@ $('directionsBtn').addEventListener('click', () => {
   activeRoute = L.polyline(routePoints, {
     color: directionColor,
     weight: 4,
-    opacity: 0.85,
-    smoothFactor: 2.0,
+    opacity: 0.9,
+    smoothFactor: 1.0,
     lineCap: 'round',
     lineJoin: 'round'
   }).addTo(trafficMap);
@@ -545,7 +529,6 @@ $('directionsBtn').addEventListener('click', () => {
     padding: [30, 30]
   });
 
-  // Generate turn-by-turn directions
   const directions = generateDirections(currentRoute, origin, destination);
   renderDirections(directions);
   updateRouteSummary(origin, destination, directions);
